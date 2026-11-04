@@ -85,8 +85,8 @@ object BzeadRepository {
 
     private val _addresses = MutableStateFlow<List<DeliveryAddress>>(
         listOf(
-            DeliveryAddress("addr_1", "Rahul Sharma", "+91 98765 43210", "Flat 402, Green Avenue", "Bellandur", "Bengaluru", "Karnataka", "560103", true),
-            DeliveryAddress("addr_2", "Rahul Sharma", "+91 98765 43210", "Plot 12, Cyber City", "Gachibowli", "Hyderabad", "Telangana", "500032", false)
+            DeliveryAddress("addr_1", "Rahul Sharma", "+91 98765 43210", "Flat 402, Green Avenue", "", "Bellandur", "Bengaluru", "Karnataka", "560103", "home", true),
+            DeliveryAddress("addr_2", "Rahul Sharma", "+91 98765 43210", "Plot 12, Cyber City", "", "Gachibowli", "Hyderabad", "Telangana", "500032", "work", false)
         )
     )
     val addresses: StateFlow<List<DeliveryAddress>> = _addresses.asStateFlow()
@@ -241,9 +241,57 @@ object BzeadRepository {
 
     fun addAddress(address: DeliveryAddress) {
         val list = _addresses.value.toMutableList()
-        list.add(address)
+        val isFirst = list.isEmpty()
+        val formattedAddress = if (isFirst) address.copy(isDefault = true) else address
+        list.add(formattedAddress)
         _addresses.value = list
-        selectedAddress.value = address
+        if (formattedAddress.isDefault || selectedAddress.value == null) {
+            selectedAddress.value = formattedAddress
+        }
+    }
+
+    fun updateAddress(address: DeliveryAddress) {
+        _addresses.value = _addresses.value.map { if (it.id == address.id) address else it }
+        if (address.isDefault || selectedAddress.value?.id == address.id) {
+            selectedAddress.value = address
+        }
+    }
+
+    fun deleteAddress(id: String) {
+        val updated = _addresses.value.filter { it.id != id }
+        _addresses.value = updated
+        if (selectedAddress.value?.id == id) {
+            selectedAddress.value = updated.firstOrNull()
+        }
+    }
+
+    fun setDefaultAddress(id: String) {
+        _addresses.value = _addresses.value.map { it.copy(isDefault = (it.id == id)) }
+        _addresses.value.firstOrNull { it.id == id }?.let {
+            selectedAddress.value = it
+        }
+    }
+
+    fun getProductsBySection(section: String): List<Product> {
+        val lowerSection = section.lowercase()
+        return _allProducts.value.filter { product ->
+            when (lowerSection) {
+                "featured" -> product.isFeatured
+                "hot-deals", "deals" -> product.isDeal || product.discountPercent > 15
+                "trending" -> product.isTrending || product.rating >= 4.5f
+                else -> true
+            }
+        }
+    }
+
+    suspend fun submitReview(productId: String, rating: Int, title: String, comment: String): Boolean {
+        return true
+    }
+
+    suspend fun updateUserProfile(fullName: String, phone: String): Boolean {
+        _userName.value = fullName
+        _userPhone.value = phone
+        return true
     }
 
     fun placeOrder(paymentMethod: String, address: DeliveryAddress): Order {

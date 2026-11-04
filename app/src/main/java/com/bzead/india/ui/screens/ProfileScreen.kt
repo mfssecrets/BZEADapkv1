@@ -93,6 +93,9 @@ fun ProfileScreen(
     onNavigateToWishlist: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToPolicy: (String) -> Unit,
+    onNavigateToAddresses: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToContact: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToSignup: () -> Unit = {},
     snackbarHostState: SnackbarHostState,
@@ -354,6 +357,22 @@ fun ProfileScreen(
                         )
                         Divider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF1F5F9))
                         ProfileMenuRow(
+                            title = "Address Management",
+                            subtitle = if (addresses.isEmpty()) "No saved addresses" else "${addresses.size} delivery addresses",
+                            icon = Icons.Default.LocationOn,
+                            onClick = onNavigateToAddresses,
+                            testTag = "menu_addresses"
+                        )
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF1F5F9))
+                        ProfileMenuRow(
+                            title = "Account Settings & Security",
+                            subtitle = "Password, profile, push notification preferences",
+                            icon = Icons.Default.Person,
+                            onClick = onNavigateToSettings,
+                            testTag = "menu_settings"
+                        )
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF1F5F9))
+                        ProfileMenuRow(
                             title = "My Wishlist",
                             subtitle = if (wishlistIds.isEmpty()) "Wishlist is empty" else "${wishlistIds.size} saved items",
                             icon = Icons.Default.FavoriteBorder,
@@ -430,9 +449,9 @@ fun ProfileScreen(
                     Divider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF1F5F9))
                     ProfileMenuRow(
                         title = "Customer Support & Contact",
-                        subtitle = "support@bzead.in • Helpline",
+                        subtitle = "WhatsApp • support@bzead.com • Helpline",
                         icon = Icons.AutoMirrored.Filled.HelpOutline,
-                        onClick = { onNavigateToPolicy("contact") },
+                        onClick = onNavigateToContact,
                         testTag = "menu_contact"
                     )
                 }

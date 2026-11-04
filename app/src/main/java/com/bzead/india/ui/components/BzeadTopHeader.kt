@@ -67,20 +67,18 @@ fun BzeadTopHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Compact Logo Mark
+            // Brand Logo Mark in Homepage Header (Transparent Background)
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .padding(2.dp)
+                    .height(34.dp)
                     .clickable { onCategoryClick("All") },
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
-                    model = BZEAD_LOGO_URL,
-                    contentDescription = "Bzead Logo Header",
-                    modifier = Modifier.size(24.dp)
+                    model = "https://res.cloudinary.com/ditsmq3r6/image/upload/v1793772394/logo_4_nuh9y9.png",
+                    contentDescription = "Bzead Logo",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    modifier = Modifier.height(30.dp)
                 )
             }
 

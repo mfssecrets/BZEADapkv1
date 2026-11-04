@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,24 +19,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -45,24 +40,24 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bzead.india.data.BzeadRepository
 import com.bzead.india.model.DeliveryAddress
-import com.bzead.india.theme.BzeadAccent
+import com.bzead.india.theme.BzeadHeaderNavy
 import com.bzead.india.theme.BzeadPrimary
-import com.bzead.india.theme.BzeadSuccess
 import com.bzead.india.theme.TextPrimary
 import com.bzead.india.theme.TextSecondary
-import java.util.UUID
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,36 +70,44 @@ fun CheckoutScreen(
     val addresses by BzeadRepository.addresses.collectAsState()
     val selectedAddress by BzeadRepository.selectedAddress.collectAsState()
 
-    var activeAddress by remember { mutableStateOf(selectedAddress ?: addresses.firstOrNull()) }
-    var selectedPaymentMethod by remember { mutableStateOf("UPI (Google Pay / PhonePe)") }
-    var isExpressDelivery by remember { mutableStateOf(false) }
+    val activeAddress = selectedAddress ?: addresses.firstOrNull() ?: DeliveryAddress(
+        id = "default",
+        fullName = "Valued Customer",
+        phoneNumber = "+91 98765 43210",
+        streetAddress = "MG Road, Connaught Place",
+        city = "New Delhi",
+        state = "Delhi",
+        pinCode = "110001"
+    )
 
-    var showAddAddressDialog by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf("") }
-    var newPhone by remember { mutableStateOf("+91 ") }
-    var newStreet by remember { mutableStateOf("") }
-    var newLocality by remember { mutableStateOf("") }
-    var newCity by remember { mutableStateOf("") }
-    var newState by remember { mutableStateOf("Delhi") }
-    var newPin by remember { mutableStateOf("") }
+    var sameAsShipping by remember { mutableStateOf(true) }
+
+    var billingStreet by remember { mutableStateOf("") }
+    var billingCity by remember { mutableStateOf("") }
+    var billingState by remember { mutableStateOf("") }
+    var billingPinCode by remember { mutableStateOf("") }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     val subtotal = cartItems.sumOf { it.totalPrice }
-    val baseShipping = if (subtotal >= 499.0) 0.0 else 40.0
-    val shippingFee = if (isExpressDelivery) baseShipping + 99.0 else baseShipping
+    val shippingFee = if (subtotal >= 499.0) 0.0 else 40.0
     val discount = if (subtotal >= 2000.0) 150.0 else 0.0
     val grandTotal = (subtotal + shippingFee - discount).coerceAtLeast(0.0)
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .background(Color(0xFFEAEDED))
     ) {
         TopAppBar(
             title = {
                 Text(
-                    text = "Checkout & Review",
+                    text = "Checkout",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    color = Color.White
                 )
             },
             navigationIcon = {
@@ -117,7 +120,7 @@ fun CheckoutScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = BzeadPrimary,
+                containerColor = BzeadHeaderNavy,
                 titleContentColor = Color.White
             )
         )
@@ -129,471 +132,175 @@ fun CheckoutScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Step 1: Delivery Address
+            // Order Total Header Card (matching bz-india Checkout.tsx)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDDDDDD))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = BzeadPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "1. Delivery Address",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                        }
-
-                        Text(
-                            text = "+ Add New",
-                            color = BzeadPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .clickable { showAddAddressDialog = true }
-                                .testTag("add_address_btn")
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    if (addresses.isEmpty() && !showAddAddressDialog) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { showAddAddressDialog = true }
-                                .padding(vertical = 4.dp),
-                            color = Color(0xFFF8FAFC),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, tint = BzeadPrimary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "No saved address. Tap to enter delivery address",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = BzeadPrimary
-                                )
-                            }
-                        }
-                    }
-
-                    addresses.forEach { addr ->
-                        val isSelected = activeAddress?.id == addr.id
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .border(
-                                    1.dp,
-                                    if (isSelected) BzeadPrimary else Color(0xFFE2E8F0),
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .background(if (isSelected) Color(0xFFEFF6FF) else Color.White)
-                                .clickable {
-                                    activeAddress = addr
-                                    BzeadRepository.selectedAddress.value = addr
-                                }
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = {
-                                    activeAddress = addr
-                                    BzeadRepository.selectedAddress.value = addr
-                                },
-                                colors = RadioButtonDefaults.colors(selectedColor = BzeadPrimary)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = addr.fullName,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = TextPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = addr.phoneNumber,
-                                        fontSize = 12.sp,
-                                        color = TextSecondary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = addr.formatted,
-                                    fontSize = 12.sp,
-                                    color = TextSecondary,
-                                    lineHeight = 16.sp
-                                )
-                            }
-                        }
-                    }
-
-                    if (showAddAddressDialog) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "Add New Indian Address",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = TextPrimary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = newName,
-                                    onValueChange = { newName = it },
-                                    label = { Text("Full Name") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                OutlinedTextField(
-                                    value = newPhone,
-                                    onValueChange = { newPhone = it },
-                                    label = { Text("Mobile Phone") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                OutlinedTextField(
-                                    value = newStreet,
-                                    onValueChange = { newStreet = it },
-                                    label = { Text("Flat, House no., Building, Apartment") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                OutlinedTextField(
-                                    value = newLocality,
-                                    onValueChange = { newLocality = it },
-                                    label = { Text("Area, Colony, Street, Sector") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
-                                        value = newCity,
-                                        onValueChange = { newCity = it },
-                                        label = { Text("City") },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    OutlinedTextField(
-                                        value = newPin,
-                                        onValueChange = { if (it.length <= 6) newPin = it },
-                                        label = { Text("PIN Code (6 digits)") },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(
-                                        onClick = {
-                                            if (newName.isNotBlank() && newStreet.isNotBlank() && newPin.length == 6) {
-                                                val newAddr = DeliveryAddress(
-                                                    id = UUID.randomUUID().toString(),
-                                                    fullName = newName,
-                                                    phoneNumber = newPhone,
-                                                    streetAddress = newStreet,
-                                                    locality = newLocality,
-                                                    city = newCity,
-                                                    state = newState,
-                                                    pinCode = newPin,
-                                                    isDefault = true
-                                                )
-                                                BzeadRepository.addAddress(newAddr)
-                                                activeAddress = newAddr
-                                                showAddAddressDialog = false
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BzeadPrimary)
-                                    ) {
-                                        Text("Save & Deliver Here")
-                                    }
-                                    Button(
-                                        onClick = { showAddAddressDialog = false },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF94A3B8))
-                                    ) {
-                                        Text("Cancel")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Step 2: Delivery Option
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.LocalShipping,
-                            contentDescription = null,
-                            tint = BzeadPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "2. Delivery Speed",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    DeliveryOptionRow(
-                        title = "Standard Delivery (Shiprocket)",
-                        subtitle = "Delivery in 3-4 business days across India",
-                        price = if (subtotal >= 499.0) "FREE" else "₹40",
-                        isSelected = !isExpressDelivery,
-                        onSelect = { isExpressDelivery = false }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DeliveryOptionRow(
-                        title = "Express Priority Dispatch (Delhivery Air)",
-                        subtitle = "Guaranteed delivery in 1-2 business days",
-                        price = "+₹99",
-                        isSelected = isExpressDelivery,
-                        onSelect = { isExpressDelivery = true }
-                    )
-                }
-            }
-
-            // Step 3: Payment Method
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Payment,
-                            contentDescription = null,
-                            tint = BzeadPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "3. Payment Method (INR)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    PaymentOptionRow(
-                        title = "UPI (Google Pay, PhonePe, Paytm, BHIM)",
-                        subtitle = "Instant payment via any UPI app",
-                        icon = Icons.Default.QrCode,
-                        isSelected = selectedPaymentMethod.startsWith("UPI"),
-                        onSelect = { selectedPaymentMethod = "UPI (Google Pay / PhonePe)" }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    PaymentOptionRow(
-                        title = "Credit / Debit Cards (Razorpay)",
-                        subtitle = "Visa, MasterCard, RuPay, Maestro",
-                        icon = Icons.Default.CreditCard,
-                        isSelected = selectedPaymentMethod.startsWith("Credit"),
-                        onSelect = { selectedPaymentMethod = "Credit / Debit Card (Razorpay)" }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    PaymentOptionRow(
-                        title = "Net Banking (All Indian Banks)",
-                        subtitle = "HDFC, SBI, ICICI, Axis, Kotak & more",
-                        icon = Icons.Default.Payment,
-                        isSelected = selectedPaymentMethod.startsWith("Net"),
-                        onSelect = { selectedPaymentMethod = "Net Banking" }
-                    )
-                }
-            }
-
-            // Order Price Breakdown
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Payment Summary",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    PriceSummaryRow(label = "Items Subtotal", value = "₹${subtotal.toInt()}")
-                    PriceSummaryRow(
-                        label = "Shipping Charges",
-                        value = if (shippingFee == 0.0) "FREE" else "₹${shippingFee.toInt()}",
-                        isFree = shippingFee == 0.0
-                    )
-                    if (discount > 0.0) {
-                        PriceSummaryRow(label = "Festive Discount", value = "-₹${discount.toInt()}", isDiscount = true)
-                    }
-                    Divider(modifier = Modifier.padding(vertical = 10.dp), color = Color(0xFFE2E8F0))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Amount to Pay",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "₹${grandTotal.toInt()}",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp,
-                            color = BzeadPrimary
-                        )
-                    }
-                }
-            }
-        }
-
-        // Place Order Bottom Bar
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
-            shadowElevation = 8.dp
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Button(
-                    onClick = {
-                        val addressToUse = activeAddress ?: addresses.firstOrNull()
-                        if (addressToUse == null) {
-                            showAddAddressDialog = true
-                            return@Button
-                        }
-                        val order = BzeadRepository.placeOrder(
-                            paymentMethod = selectedPaymentMethod,
-                            address = addressToUse
-                        )
-                        onOrderPlaced(order.id)
-                    },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("confirm_place_order_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = BzeadAccent),
-                    shape = RoundedCornerShape(8.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Pay ₹${grandTotal.toInt()} & Place Order",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
+                    Column {
+                        Text(
+                            text = "Total Amount",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "₹${grandTotal.toInt()}",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFB12704)
+                        )
+                    }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun DeliveryOptionRow(
-    title: String,
-    subtitle: String,
-    price: String,
-    isSelected: Boolean,
-    onSelect: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, if (isSelected) BzeadPrimary else Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
-            .background(if (isSelected) Color(0xFFEFF6FF) else Color.White)
-            .clickable { onSelect() }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = onSelect,
-            colors = RadioButtonDefaults.colors(selectedColor = BzeadPrimary)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-            Text(text = subtitle, fontSize = 11.sp, color = TextSecondary)
-        }
-        Text(
-            text = price,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            color = if (price == "FREE") BzeadSuccess else TextPrimary
-        )
-    }
-}
+            // Billing Address Card (matching bz-india Checkout.tsx)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDDDDDD))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { sameAsShipping = !sameAsShipping }
+                    ) {
+                        Checkbox(
+                            checked = sameAsShipping,
+                            onCheckedChange = { sameAsShipping = it },
+                            colors = CheckboxDefaults.colors(checkedColor = BzeadPrimary)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Billing address same as shipping",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextPrimary
+                        )
+                    }
 
-@Composable
-private fun PaymentOptionRow(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    onSelect: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, if (isSelected) BzeadPrimary else Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
-            .background(if (isSelected) Color(0xFFEFF6FF) else Color.White)
-            .clickable { onSelect() }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = onSelect,
-            colors = RadioButtonDefaults.colors(selectedColor = BzeadPrimary)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Icon(imageVector = icon, contentDescription = null, tint = BzeadPrimary, modifier = Modifier.size(22.dp))
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-            Text(text = subtitle, fontSize = 11.sp, color = TextSecondary)
+                    if (!sameAsShipping) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = billingStreet,
+                            onValueChange = { billingStreet = it },
+                            label = { Text("Street Address") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = billingCity,
+                                onValueChange = { billingCity = it },
+                                label = { Text("City") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = billingState,
+                                onValueChange = { billingState = it },
+                                label = { Text("State") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = billingPinCode,
+                            onValueChange = { billingPinCode = it },
+                            label = { Text("PIN Code") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                }
+            }
+
+            // Payment Method Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDDDDDD))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "PAYMENT METHOD",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Pay securely with UPI, cards, net banking or wallets.",
+                        fontSize = 13.5.sp,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            isLoading = true
+                            errorMessage = null
+                            scope.launch {
+                                delay(1000)
+                                val order = BzeadRepository.placeOrder(
+                                    paymentMethod = "Online Payment (Stripe / Razorpay)",
+                                    address = activeAddress
+                                )
+                                isLoading = false
+                                onOrderPlaced(order.id)
+                            }
+                        },
+                        enabled = !isLoading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFD814),
+                            disabledContainerColor = Color(0xFFE2E8F0)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("pay_now_btn")
+                    ) {
+                        if (isLoading) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Color(0xFF0F1111),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Processing...", fontWeight = FontWeight.Bold, color = Color(0xFF0F1111))
+                            }
+                        } else {
+                            Text(
+                                text = "PAY NOW — ₹${grandTotal.toInt()}",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F1111),
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

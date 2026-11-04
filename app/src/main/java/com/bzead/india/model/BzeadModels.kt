@@ -32,15 +32,19 @@ data class DeliveryAddress(
     val fullName: String,
     val phoneNumber: String,
     val streetAddress: String,
+    val streetAddress2: String = "",
     val locality: String = "",
     val city: String,
     val state: String = "Karnataka",
     val pinCode: String,
-    val isDefault: Boolean = false
+    val addressType: String = "home", // "home", "work", "other"
+    val isDefault: Boolean = false,
+    val email: String = ""
 ) {
     val formatted: String
         get() = listOfNotNull(
             streetAddress,
+            streetAddress2.ifBlank { null },
             locality.ifBlank { null },
             "$city, $state - $pinCode"
         ).joinToString(", ")

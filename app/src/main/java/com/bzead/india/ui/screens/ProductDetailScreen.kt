@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,9 +41,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -63,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.bzead.india.data.BzeadRepository
 import com.bzead.india.data.SampleCatalogData
 import com.bzead.india.model.ProductVariant
@@ -82,6 +86,7 @@ fun ProductDetailScreen(
     productId: String,
     onNavigateBack: () -> Unit,
     onNavigateToCart: () -> Unit,
+    onNavigateToWriteReview: (String) -> Unit = {},
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
@@ -159,18 +164,26 @@ fun ProductDetailScreen(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(bottom = 80.dp)
+                    .padding(bottom = 90.dp)
             ) {
                 // Product Hero Image
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
-                        .background(Color.White)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
                 ) {
                     if (product.drawableRes != null) {
                         Image(
                             painter = painterResource(id = product.drawableRes),
+                            contentDescription = product.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        AsyncImage(
+                            model = product.imageUrl,
                             contentDescription = product.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
@@ -385,7 +398,7 @@ fun ProductDetailScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -396,10 +409,19 @@ fun ProductDetailScreen(
                                 onValueChange = {
                                     if (it.length <= 6) pinCodeInput = it
                                 },
-                                label = { Text("Enter 6-Digit PIN Code") },
+                                label = { Text("Enter 6-Digit PIN Code", fontSize = 12.sp) },
                                 singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF0F172A),
+                                    unfocusedTextColor = Color(0xFF0F172A),
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White,
+                                    focusedBorderColor = BzeadPrimary,
+                                    unfocusedBorderColor = Color(0xFFCBD5E1)
+                                ),
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(54.dp)
                                     .testTag("pincode_input")
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -411,14 +433,16 @@ fun ProductDetailScreen(
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = BzeadPrimary),
                                 shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.testTag("check_pincode_button")
+                                modifier = Modifier
+                                    .height(54.dp)
+                                    .testTag("check_pincode_button")
                             ) {
-                                Text("Check")
+                                Text("Check", fontWeight = FontWeight.Bold)
                             }
                         }
 
                         if (pinVerified) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.LocationOn,
@@ -503,12 +527,21 @@ fun ProductDetailScreen(
                     shadowElevation = 1.dp
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Customer Reviews",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Customer Reviews",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            TextButton(onClick = { onNavigateToWriteReview(productId) }) {
+                                Text("Write a Review", fontWeight = FontWeight.Bold, color = BzeadPrimary)
+                            }
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
 
                         SampleCatalogData.sampleReviews.forEach { review ->
@@ -578,6 +611,7 @@ fun ProductDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -633,3 +667,4 @@ fun ProductDetailScreen(
         }
     }
 }
+

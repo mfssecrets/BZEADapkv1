@@ -50,6 +50,14 @@ import com.bzead.india.ui.screens.WishlistScreen
 import com.example.ui.splash.SplashScreen
 import com.example.ui.theme.MyApplicationTheme
 
+import com.bzead.india.ui.screens.ShippingAddressScreen
+import com.bzead.india.ui.screens.OrderSummaryScreen
+import com.bzead.india.ui.screens.AddressManagementScreen
+import com.bzead.india.ui.screens.WriteReviewScreen
+import com.bzead.india.ui.screens.SettingsScreen
+import com.bzead.india.ui.screens.SectionProductsScreen
+import com.bzead.india.ui.screens.ContactScreen
+
 sealed class AppScreen {
     data object Splash : AppScreen()
     data object Home : AppScreen()
@@ -62,6 +70,8 @@ sealed class AppScreen {
     data object Orders : AppScreen()
     data class OrderDetail(val orderId: String) : AppScreen()
     data class OrderSuccess(val orderId: String) : AppScreen()
+    data object ShippingAddress : AppScreen()
+    data object OrderSummary : AppScreen()
     data object Checkout : AppScreen()
     data object Login : AppScreen()
     data object Signup : AppScreen()
@@ -69,6 +79,11 @@ sealed class AppScreen {
     data object ForgotPassword : AppScreen()
     data object Notifications : AppScreen()
     data class Policy(val type: String) : AppScreen()
+    data object AddressManagement : AppScreen()
+    data class WriteReview(val productId: String) : AppScreen()
+    data object Settings : AppScreen()
+    data class SectionProducts(val sectionId: String) : AppScreen()
+    data object Contact : AppScreen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -173,7 +188,20 @@ class MainActivity : ComponentActivity() {
                                     CartScreen(
                                         onNavigateToHome = { currentScreen = AppScreen.Home },
                                         onNavigateToProduct = { id -> currentScreen = AppScreen.ProductDetail(id) },
-                                        onProceedToCheckout = { currentScreen = AppScreen.Checkout }
+                                        onProceedToCheckout = { currentScreen = AppScreen.ShippingAddress }
+                                    )
+                                }
+                                is AppScreen.ShippingAddress -> {
+                                    ShippingAddressScreen(
+                                        onNavigateBack = { currentScreen = AppScreen.Cart },
+                                        onProceedToSummary = { currentScreen = AppScreen.OrderSummary }
+                                    )
+                                }
+                                is AppScreen.OrderSummary -> {
+                                    OrderSummaryScreen(
+                                        onNavigateBack = { currentScreen = AppScreen.ShippingAddress },
+                                        onProceedToPayment = { currentScreen = AppScreen.Checkout },
+                                        onNavigateToCart = { currentScreen = AppScreen.Cart }
                                     )
                                 }
                                 is AppScreen.Profile -> {
@@ -182,6 +210,9 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToWishlist = { currentScreen = AppScreen.Wishlist },
                                         onNavigateToNotifications = { currentScreen = AppScreen.Notifications },
                                         onNavigateToPolicy = { type -> currentScreen = AppScreen.Policy(type) },
+                                        onNavigateToAddresses = { currentScreen = AppScreen.AddressManagement },
+                                        onNavigateToSettings = { currentScreen = AppScreen.Settings },
+                                        onNavigateToContact = { currentScreen = AppScreen.Contact },
                                         onNavigateToLogin = { currentScreen = AppScreen.Login },
                                         onNavigateToSignup = { currentScreen = AppScreen.Signup },
                                         snackbarHostState = snackbarHostState
@@ -199,7 +230,37 @@ class MainActivity : ComponentActivity() {
                                         productId = screen.productId,
                                         onNavigateBack = { currentScreen = AppScreen.Home },
                                         onNavigateToCart = { currentScreen = AppScreen.Cart },
+                                        onNavigateToWriteReview = { id -> currentScreen = AppScreen.WriteReview(id) },
                                         snackbarHostState = snackbarHostState
+                                    )
+                                }
+                                is AppScreen.AddressManagement -> {
+                                    AddressManagementScreen(
+                                        onNavigateBack = { currentScreen = AppScreen.Profile }
+                                    )
+                                }
+                                is AppScreen.WriteReview -> {
+                                    WriteReviewScreen(
+                                        productId = screen.productId,
+                                        onNavigateBack = { currentScreen = AppScreen.ProductDetail(screen.productId) },
+                                        onReviewSubmitted = { currentScreen = AppScreen.ProductDetail(screen.productId) }
+                                    )
+                                }
+                                is AppScreen.Settings -> {
+                                    SettingsScreen(
+                                        onNavigateBack = { currentScreen = AppScreen.Profile }
+                                    )
+                                }
+                                is AppScreen.SectionProducts -> {
+                                    SectionProductsScreen(
+                                        sectionId = screen.sectionId,
+                                        onNavigateBack = { currentScreen = AppScreen.Home },
+                                        onProductClick = { id -> currentScreen = AppScreen.ProductDetail(id) }
+                                    )
+                                }
+                                is AppScreen.Contact -> {
+                                    ContactScreen(
+                                        onNavigateBack = { currentScreen = AppScreen.Profile }
                                     )
                                 }
                                 is AppScreen.Wishlist -> {
@@ -211,7 +272,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 is AppScreen.Checkout -> {
                                     CheckoutScreen(
-                                        onNavigateBack = { currentScreen = AppScreen.Cart },
+                                        onNavigateBack = { currentScreen = AppScreen.OrderSummary },
                                         onOrderPlaced = { orderId -> currentScreen = AppScreen.OrderSuccess(orderId) }
                                     )
                                 }

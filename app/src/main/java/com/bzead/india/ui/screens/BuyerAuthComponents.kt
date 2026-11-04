@@ -44,6 +44,8 @@ val AuthNavy = Color(0xFF1F2B3D)
 val AuthBlueStart = Color(0xFF2563EB)
 val AuthBlueEnd = Color(0xFF1D4ED8)
 
+const val BZEAD_AUTH_LOGO_URL = "https://res.cloudinary.com/ditsmq3r6/image/upload/v1793773017/logo_5_iaowjo.png"
+
 @Composable
 fun BuyerAuthNav(
     onNavigateBack: () -> Unit,
@@ -57,7 +59,7 @@ fun BuyerAuthNav(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
@@ -73,35 +75,20 @@ fun BuyerAuthNav(
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { onNavigateBack() }
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                    .clickable { onNavigateBack() },
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "B",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black
-                )
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(BzeadRed),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
-                Text(
-                    text = "EAD",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black
+                coil.compose.AsyncImage(
+                    model = BZEAD_AUTH_LOGO_URL,
+                    contentDescription = "Bzead Logo",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    modifier = Modifier.size(30.dp)
                 )
             }
         }
@@ -110,37 +97,27 @@ fun BuyerAuthNav(
 
 @Composable
 fun AuthBrandMark(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    Box(
+        modifier = modifier
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "B",
-            color = Color(0xFF0F172A),
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Black
-        )
         Box(
             modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(BzeadRed),
+                .height(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White)
+                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 4.dp),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.ShoppingCart,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(14.dp)
+            coil.compose.AsyncImage(
+                model = BZEAD_AUTH_LOGO_URL,
+                contentDescription = "Bzead Logo",
+                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                modifier = Modifier.size(40.dp)
             )
         }
-        Text(
-            text = "EAD",
-            color = Color(0xFF0F172A),
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Black
-        )
     }
 }
 
